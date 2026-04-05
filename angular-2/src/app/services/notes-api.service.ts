@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { map, Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 import { CreateNotePayload } from '../core/create-note-payload.type';
 import { Note } from '../core/note.interface';
@@ -13,7 +14,7 @@ import { UpdateNotePayload } from '../core/update-note-payload.type';
 })
 export class NotesApiService implements NotesRepository {
     private readonly httpClient = inject(HttpClient);
-    private readonly notesApiUrl = 'http://localhost:3000/notes';
+    private readonly notesApiUrl = `${environment.apiBaseUrl}/notes`;
 
     getNotes(): Observable<Note[]> {
         return this.httpClient
