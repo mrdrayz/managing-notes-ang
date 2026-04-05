@@ -1,0 +1,314 @@
+<button
+    class="theme-toggle"
+    type="button"
+    [attr.aria-label]="themeToggleLabel"
+    [title]="themeToggleLabel"
+    (click)="onThemeToggle()"
+>
+    {{ themeToggleIcon }}
+</button>
+
+@if (toastNotifications.length > 0) {
+    <div class="toast-container" aria-live="polite" aria-atomic="true">
+        @for (toast of toastNotifications; track toast.id) {
+            <div class="toast" [class.toast--info]="toast.type === 'info'">
+                <p class="toast__message">{{ toast.message }}</p>
+
+                <button
+                    class="toast__close"
+                    type="button"
+                    aria-label="Закрыть уведомление"
+                    title="Закрыть уведомление"
+                    (click)="onToastDismiss(toast.id)"
+                >
+                    ✕
+                </button>
+            </div>
+        }
+    </div>
+}
+
+<main class="page">
+    <section class="panel panel--header">
+        <div>
+            <h1 class="page__title">Управление заметками</h1>
+            <p class="page__subtitle">
+                Создавайте заметки и переключайтесь между API и локальным хранилищем.
+            </p>
+        </div>
+
+        <div class="header-actions">
+            <div class="field field--compact">
+                <label class="field__label" for="data-source"> Источник заметок </label>
+
+                <select
+                    id="data-source"
+                    class="field__control"
+                    name="dataSource"
+                    [ngModel]="selectedDataSource"
+                    (ngModelChange)="onDataSourceChange($event)"
+                >
+                    @for (option of dataSourceOptions; track option.value) {
+                        <option [ngValue]="option.value">
+                            {{ option.label }}
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+    </section>
+
+    @if (errorMessage) {
+        <section class="panel panel--message">
+            <p class="message message--error">
+                {{ errorMessage }}
+            </p>
+        </section>
+    }
+
+    <section class="panel">
+        <h2 class="section__title">{{ formTitle }}</h2>
+
+        @if (isEditMode) {
+            <p class="form-status">Сейчас вы редактируете существующую заметку через форму ниже.</p>
+        }
+
+        <form class="note-form" (ngSubmit)="onNoteSubmit()">
+            <div class="field">
+                <label class="field__label" for="note-title">Заголовок</label>
+                <input
+                    id="note-title"
+                    class="field__control"
+                    type="text"
+                    name="title"
+                    [(ngModel)]="noteFormModel.title"
+                    [attr.maxlength]="titleMaxLength"
+                    placeholder="Введите заголовок"
+                    (ngModelChange)="onNoteFormChange()"
+                />
+                <p class="field__hint">{{ noteFormModel.title.length }} / {{ titleMaxLength }}</p>
+            </div>
+
+            <div class="field">
+                <label class="field__label" for="note-content">Текст</label>
+                <textarea
+                    id="note-content"
+                    class="field__control field__control--textarea"
+                    name="content"
+                    [(ngModel)]="noteFormModel.content"
+                    [attr.maxlength]="contentMaxLength"
+                    placeholder="Введите текст заметки"
+                    (ngModelChange)="onNoteFormChange()"
+                ></textarea>
+                <p class="field__hint">
+                    {{ noteFormModel.content.length }} / {{ contentMaxLength }}
+                </p>
+            </div>
+
+            <div class="form-actions">
+                <button class="button" type="submit" [disabled]="isNoteSubmitDisabled">
+                    {{ submitButtonLabel }}
+                </button>
+
+                @if (isEditMode) {
+                    <button class="button button--secondary" type="button" (click)="onEditCancel()">
+                        Отменить редактирование
+                    </button>
+                }
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="notes-header">
+            <h2 class="section__title section__title--no-margin section__title--notes">Заметки</h2>
+
+            @if (isLoadingNotes) {
+                <p class="notes-header__status">Загрузка заметок...</p>
+            }
+        </div>
+
+        <div class="notes-toolbar">
+            <div class="field notes-toolbar__search">
+                <label class="field__label field__label--search" for="search-query"> Поиск </label>
+
+                <div class="search-control">
+                    <input
+                        id="search-query"
+                        class="field__control"
+                        type="text"
+                        name="searchQuery"
+                        [(ngModel)]="searchQuery"
+                        placeholder="Поиск по заголовку и тексту"
+                    />
+
+                    @if (isSearchActive) {
+                        <button
+                            class="search-clear"
+                            type="button"
+                            aria-label="Очистить поиск"
+                            title="Очистить поиск"
+                            (click)="onSearchClear()"
+                        >
+                            ✕
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="field notes-toolbar__sort">
+                <label class="field__label" for="sort-option">Сортировка</label>
+
+                <select
+                    id="sort-option"
+                    class="field__control"
+                    name="sortOption"
+                    [(ngModel)]="selectedSortOption"
+                >
+                    @for (option of sortOptions; track option.value) {
+                        <option [ngValue]="option.value">
+                            {{ option.label }}
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (!isLoadingNotes && !hasVisibleNotes) {
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ emptyStateIcon }}</div>
+                <h3 class="empty-state__title">{{ emptyStateTitle }}</h3>
+                <p class="empty-state__text">{{ emptyStateDescription }}</p>
+            </div>
+        } @else if (hasVisibleNotes) {
+            <ul class="notes-list">
+                @for (note of visibleNotes; track note.id) {
+                    <li class="note-card" [class.note-card--editing]="note.id === editingNoteId">
+                        <div class="note-card__header">
+                            <div class="note-card__heading">
+                                <h3 class="note-card__title">
+                                    {{ note.title }}
+                                </h3>
+
+                                <div class="note-card__badges">
+                                    @if (note.isPinned) {
+                                        <p class="note-card__pin-badge">📌 Закреплено</p>
+                                    }
+
+                                    @if (note.id === editingNoteId) {
+                                        <p class="note-card__badge">
+                                            Заметка редактируется через форму выше
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="note-card__actions">
+                                <button
+                                    class="button button--secondary button--small"
+                                    type="button"
+                                    [disabled]="
+                                        isSubmittingNote ||
+                                        deletingNoteId === note.id ||
+                                        togglingPinnedNoteId === note.id
+                                    "
+                                    (click)="onNotePinToggle(note)"
+                                >
+                                    {{
+                                        togglingPinnedNoteId === note.id
+                                            ? 'Сохранение...'
+                                            : note.isPinned
+                                              ? 'Открепить'
+                                              : 'Закрепить'
+                                    }}
+                                </button>
+
+                                <button
+                                    class="button button--secondary button--small"
+                                    type="button"
+                                    [disabled]="
+                                        isSubmittingNote ||
+                                        deletingNoteId === note.id ||
+                                        togglingPinnedNoteId === note.id
+                                    "
+                                    (click)="onEditStart(note)"
+                                >
+                                    Редактировать
+                                </button>
+
+                                <button
+                                    class="button button--danger button--small"
+                                    type="button"
+                                    [disabled]="
+                                        isSubmittingNote ||
+                                        deletingNoteId === note.id ||
+                                        togglingPinnedNoteId === note.id
+                                    "
+                                    (click)="onDeleteRequest(note)"
+                                >
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="note-card__content">{{ note.content }}</p>
+
+                        <div class="note-card__meta">
+                            <p class="note-card__date">
+                                Создано:
+                                {{ note.createdAt | date: 'dd.MM.yyyy, HH:mm' }}
+                            </p>
+
+                            @if (note.updatedAt) {
+                                <p class="note-card__date">
+                                    Изменено:
+                                    {{ note.updatedAt | date: 'dd.MM.yyyy, HH:mm' }}
+                                </p>
+                            }
+                        </div>
+
+                        <p class="note-card__id">ID: {{ note.id }}</p>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</main>
+
+@if (notePendingDeletion; as noteToDelete) {
+    <div class="modal-backdrop">
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-note-dialog-title"
+        >
+            <h3 id="delete-note-dialog-title" class="modal__title">Подтверждение удаления</h3>
+
+            <p class="modal__text">
+                Вы действительно хотите удалить заметку
+                <strong>«{{ noteToDelete.title }}»</strong>?
+            </p>
+
+            <div class="modal__actions">
+                <button
+                    class="button button--secondary"
+                    type="button"
+                    [disabled]="deletingNoteId === noteToDelete.id"
+                    (click)="onDeleteCancel()"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    class="button button--danger"
+                    type="button"
+                    [disabled]="deletingNoteId === noteToDelete.id"
+                    (click)="onDeleteConfirm()"
+                >
+                    {{ deletingNoteId === noteToDelete.id ? 'Удаление...' : 'Удалить' }}
+                </button>
+            </div>
+        </div>
+    </div>
+}
