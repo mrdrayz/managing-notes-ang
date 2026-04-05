@@ -1,4 +1,7 @@
 :host {
+    --brand-logo-width: 106px;
+    --brand-logo-height: 86px;
+    --brand-title-size: 30px;
     --page-background: #ffffff;
     --panel-background: #ffffff;
     --panel-border: #e5e7eb;
@@ -45,7 +48,7 @@
 .page {
     max-width: 960px;
     margin: 0 auto;
-    padding: 72px 16px 48px;
+    padding: 22px 16px 48px;
 }
 
 .theme-toggle {
@@ -531,6 +534,33 @@
     justify-content: flex-end;
     gap: 12px;
     flex-wrap: wrap;
+}
+
+.app-brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.app-brand__content {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.app-brand__logo {
+    width: var(--brand-logo-width);
+    height: var(--brand-logo-height);
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.app-brand__title {
+    color: var(--text-primary);
+    font-size: var(--brand-title-size);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.02em;
 }
 
 @media (max-width: 700px) {
